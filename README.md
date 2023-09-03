@@ -1,4 +1,4 @@
-# AwesomeShop.Services.Customers - Formação Microsserviços com ASP.NET Core
+# AwesomeShop - Formação Microsserviços com ASP.NET Core
 
 A arquitetura do AwesomeShop, sistema de e-commerce baseado na arquitetura de microsserviços, contém 6 microsserviços:
 - [Customers](https://github.com/luisdeol/AwesomeShop.Services.Customers)
