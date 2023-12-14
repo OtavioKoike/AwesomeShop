@@ -20,11 +20,15 @@ namespace AwesomeShop.Services.Orders.Api
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            // Minhas instaciações
+            // Minhas instaciaï¿½ï¿½es
             services
                 .AddHandlers()
                 .AddMongo()
-                .AddRepositories();
+                .AddRepositories()
+                .AddMessageBus()
+                .AddSubscribers();
+
+            services.AddHttpClient();
 
             services.AddControllers();
             services.AddSwaggerGen(c =>

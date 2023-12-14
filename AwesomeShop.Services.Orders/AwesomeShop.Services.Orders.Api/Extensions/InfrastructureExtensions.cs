@@ -1,10 +1,13 @@
 ﻿using AwesomeShop.Services.Orders.Core.Repositories;
+using AwesomeShop.Services.Orders.Infrastructure.MessageBus;
 using AwesomeShop.Services.Orders.Infrastructure.Persistence;
 using AwesomeShop.Services.Orders.Infrastructure.Persistence.Repositories;
+using AwesomeShop.Services.Orders.Infrastructure.Subscribers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using RabbitMQ.Client;
 
 namespace AwesomeShop.Services.Orders.Api.Extensions
 {
@@ -49,6 +52,32 @@ namespace AwesomeShop.Services.Orders.Api.Extensions
         public static IServiceCollection AddRepositories(this IServiceCollection services)
         {
             services.AddScoped<IOrderRepository, OrderRepository>();
+            return services;
+        }
+
+        public static IServiceCollection AddMessageBus(this IServiceCollection services)
+        {
+            // Classe que é necessaria para criar conexoes com o RabbitMQ
+            var connectionFactory = new ConnectionFactory
+            {
+                HostName = "localhost"
+            };
+
+            // Criar conexao
+            var connection = connectionFactory.CreateConnection("order-service-producer");
+
+            services.AddSingleton(new ProducerConnection(connection));
+
+            // A conexao vai ficar ativa (Singleton), mas quando alguma parte da aplicação
+            // precisar usar o RabbitMQ, ele vai criar um canal dentro da conexão
+            services.AddSingleton<IMessageBusClient, RabbitMqClient>();
+
+            return services;
+        }
+
+        public static IServiceCollection AddSubscribers(this IServiceCollection services)
+        {
+            services.AddHostedService<PaymentAcceptedSubscriber>();
             return services;
         }
     }
