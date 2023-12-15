@@ -1,13 +1,20 @@
-﻿using AwesomeShop.Services.Orders.Core.Repositories;
+﻿using AwesomeShop.Services.Orders.Core.Clients;
+using AwesomeShop.Services.Orders.Core.Repositories;
+using AwesomeShop.Services.Orders.Infrastructure.Clients;
 using AwesomeShop.Services.Orders.Infrastructure.MessageBus;
 using AwesomeShop.Services.Orders.Infrastructure.Persistence;
 using AwesomeShop.Services.Orders.Infrastructure.Persistence.Repositories;
+using AwesomeShop.Services.Orders.Infrastructure.ServiceDiscovery;
 using AwesomeShop.Services.Orders.Infrastructure.Subscribers;
+using Consul;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using RabbitMQ.Client;
+using System;
 
 namespace AwesomeShop.Services.Orders.Api.Extensions
 {
@@ -78,6 +85,53 @@ namespace AwesomeShop.Services.Orders.Api.Extensions
         public static IServiceCollection AddSubscribers(this IServiceCollection services)
         {
             services.AddHostedService<PaymentAcceptedSubscriber>();
+            return services;
+        }
+
+        public static IServiceCollection AddConsul(this IServiceCollection services, IConfiguration config)
+        {
+            services.AddSingleton<IConsulClient, ConsulClient>(p => new ConsulClient(consulConfig =>
+            {
+                var address = config.GetValue<string>("Consul:Host");
+                consulConfig.Address = new Uri(address);
+            }));
+
+            services.AddTransient<IServiceDiscoveryService, ConsulService>();
+
+            return services;
+        }
+
+        // Registar assim que a Aplicacao inicia
+        public static IApplicationBuilder useConsul(this IApplicationBuilder app)
+        {
+            var consulClient = app.ApplicationServices.GetRequiredService<IConsulClient>();
+            var lifeTime = app.ApplicationServices.GetRequiredService<IHostApplicationLifetime>();
+
+            var registration = new AgentServiceRegistration
+            {
+                ID = "order-service",
+                Name = "OrderServices",
+                Address = "localhost",
+                Port = 5003
+            };
+
+            consulClient.Agent.ServiceDeregister(registration.ID).ConfigureAwait(true);
+            consulClient.Agent.ServiceRegister(registration).ConfigureAwait(true);
+
+            Console.WriteLine("Service registed in Consul");
+
+            lifeTime.ApplicationStopping.Register(() =>
+            {
+                consulClient.Agent.ServiceDeregister(registration.ID).ConfigureAwait(true);
+                Console.WriteLine("Service deregisted in Consul");
+            });
+
+            return app;
+        }
+
+        public static IServiceCollection AddClients(this IServiceCollection services)
+        {
+            services.AddScoped<IGenericHttpClient, GenericHttpClient>();
             return services;
         }
     }
