@@ -28,7 +28,8 @@ namespace AwesomeShop.Services.Orders.Api
                 .AddMessageBus()
                 .AddSubscribers()
                 .AddConsul(Configuration)
-                .AddClients();
+                .AddClients()
+                .AddRedisCache();
 
             services.AddHttpClient();
 

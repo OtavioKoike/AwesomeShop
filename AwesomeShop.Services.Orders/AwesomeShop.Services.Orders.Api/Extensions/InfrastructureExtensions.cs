@@ -1,5 +1,6 @@
 ﻿using AwesomeShop.Services.Orders.Core.Clients;
 using AwesomeShop.Services.Orders.Core.Repositories;
+using AwesomeShop.Services.Orders.Infrastructure.CacheStorage;
 using AwesomeShop.Services.Orders.Infrastructure.Clients;
 using AwesomeShop.Services.Orders.Infrastructure.MessageBus;
 using AwesomeShop.Services.Orders.Infrastructure.Persistence;
@@ -132,6 +133,19 @@ namespace AwesomeShop.Services.Orders.Api.Extensions
         public static IServiceCollection AddClients(this IServiceCollection services)
         {
             services.AddScoped<IGenericHttpClient, GenericHttpClient>();
+            return services;
+        }
+
+        public static IServiceCollection AddRedisCache(this IServiceCollection services)
+        {
+            services.AddStackExchangeRedisCache(options =>
+            {
+                options.InstanceName = "OrdersCache";
+                options.Configuration = "localhost:6379";
+            });
+
+            services.AddTransient<ICacheService, RedisService>();
+
             return services;
         }
     }
